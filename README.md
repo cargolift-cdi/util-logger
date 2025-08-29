@@ -5,22 +5,13 @@ Logger global para projetos NestJS da Cargolift.
 ## Instalação
 
 ```
-npm install @cargolift-cdi/util-logger nestjs-pino
+npm install @cargolift-cdi/util-logger
 ```
 
-## Uso
-
-```typescript
-import { LoggingModule, Logging } from '@cargolift-cdi/util-logger';
-
-@Module({
-  imports: [LoggingModule],
-})
-export class AppModule {}
+## Build & Publish
+```
+npm run build
+npm publish --access public
 ```
 
-Depois, injete o serviço `Logging` onde precisar:
 
-```typescript
-constructor(private readonly logger: Logging) {}
-```
