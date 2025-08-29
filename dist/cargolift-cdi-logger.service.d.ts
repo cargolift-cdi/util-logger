@@ -4,8 +4,7 @@ export declare class CargoliftCDILogger {
     private context;
     constructor(logger: PinoLogger);
     setContext(context: Record<string, any>): void;
-    log(message: string, ...args: any[]): void;
-    info(message: string, ...args: any[]): void;
+    info(message: string, data?: Record<string, any>, ...args: any[]): void;
     error(error: Error, message?: string, ...args: any[]): void;
     warn(message: string, ...args: any[]): void;
     debug(message: string, ...args: any[]): void;

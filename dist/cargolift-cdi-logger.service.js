@@ -30,11 +30,8 @@ let CargoliftCDILogger = class CargoliftCDILogger {
         // Também podemos definir o contexto no pino para que ele apareça no prefixo
         this.logger.setContext(context.name);
     }
-    log(message, ...args) {
-        this.logger.info(Object.assign({}, this.context), message, ...args);
-    }
-    info(message, ...args) {
-        this.logger.info(Object.assign({}, this.context), message, ...args);
+    info(message, data, ...args) {
+        this.logger.info(Object.assign(Object.assign({}, this.context), { data }), message, ...args);
     }
     error(error, message, ...args) {
         this.logger.error(Object.assign(Object.assign({}, this.context), { err: error }), message || error.message, ...args);

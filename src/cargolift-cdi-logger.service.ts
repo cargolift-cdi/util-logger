@@ -22,14 +22,11 @@ export class CargoliftCDILogger {
     this.logger.setContext(context.name);
   }
 
-  log(message: string, ...args: any[]) {
-    this.logger.info({ ...this.context }, message, ...args);
+  info(message: string, data?: Record<string, any>, ...args: any[]) {
+    this.logger.info({ ...this.context, data }, message, ...args);
   }
 
-  info(message: string, ...args: any[]) {
-    this.logger.info({ ...this.context }, message, ...args);
-  }
-  
+ 
   error(error: Error, message?: string, ...args: any[]) {
     this.logger.error({ ...this.context, err: error }, message || error.message, ...args);
   }
