@@ -24,3 +24,10 @@ Depois, injete o serviço `Logging` onde precisar:
 ```typescript
 constructor(private readonly logger: Logging) {}
 ```
+
+
+# Build & Publish
+```
+npm run build
+npm publish --access public
+```
