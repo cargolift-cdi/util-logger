@@ -8,9 +8,10 @@ Logger global para projetos NestJS da Cargolift.
 npm install @cargolift-cdi/util-logger
 ```
 
-# Build & Publish
+## Build & Publish
 ```
 npm run build
 npm publish --access public
 ```
+
 
