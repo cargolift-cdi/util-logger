@@ -12,8 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CargoliftCDILogger = void 0;
 const common_1 = require("@nestjs/common");
 const nestjs_pino_1 = require("nestjs-pino");
-// Scope.TRANSIENT significa que uma nova instância será criada
-// toda vez que este serviço for injetado.
 let CargoliftCDILogger = class CargoliftCDILogger {
     constructor(logger) {
         this.logger = logger;
@@ -52,6 +50,6 @@ let CargoliftCDILogger = class CargoliftCDILogger {
 };
 exports.CargoliftCDILogger = CargoliftCDILogger;
 exports.CargoliftCDILogger = CargoliftCDILogger = __decorate([
-    (0, common_1.Injectable)({ scope: common_1.Scope.TRANSIENT }),
+    (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [nestjs_pino_1.PinoLogger])
 ], CargoliftCDILogger);
