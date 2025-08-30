@@ -1,9 +1,7 @@
 import { Injectable, Scope } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 
-// Scope.TRANSIENT significa que uma nova instância será criada
-// toda vez que este serviço for injetado.
-@Injectable({ scope: Scope.TRANSIENT }) 
+@Injectable()
 export class CargoliftCDILogger {
   private context!: Record<string, any>;
 
