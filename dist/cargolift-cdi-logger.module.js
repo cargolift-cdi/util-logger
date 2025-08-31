@@ -23,7 +23,7 @@ exports.CargoliftCDILoggerModule = CargoliftCDILoggerModule = __decorate([
         imports: [
             nestjs_pino_1.LoggerModule.forRoot({
                 pinoHttp: {
-                    name: 'middleware-service-email',
+                    name: 'cargolift-cdi-logger',
                     // TODO: Produção
                     level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
                     // level: 'info'
@@ -42,6 +42,6 @@ exports.CargoliftCDILoggerModule = CargoliftCDILoggerModule = __decorate([
             }),
         ],
         providers: [cargolift_cdi_logger_service_1.CargoliftCDILogger], // Disponibiliza o ContextualLogger para injeção
-        exports: [cargolift_cdi_logger_service_1.CargoliftCDILogger], // Exporta para que outros módulos possam usá-lo
+        exports: [cargolift_cdi_logger_service_1.CargoliftCDILogger, nestjs_pino_1.LoggerModule], // Exporta também o LoggerModule para que o PinoLogger esteja disponível
     })
 ], CargoliftCDILoggerModule);
