@@ -9,6 +9,8 @@
     "target": "es2021",
     "sourceMap": true,
     "outDir": "./dist",
+    "strict": true,
+    "esModuleInterop": true,
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,

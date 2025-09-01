@@ -1,204 +1,185 @@
-# Cargolift CDI Logger 📝
+# Cargolift CDI Logger
 
-Biblioteca de log padronizada para aplicações NestJS da Cargolift. Construída sobre `nestjs-pino`, ela impõe uma estrutura de log consistente para facilitar o rastreamento, a análise e o monitoramento centralizado (ELK Stack).
-
-## Funcionalidades
-
--   **Estrutura de Log Padronizada:** Garante que todos os logs contenham informações cruciais como `correlationId`, `application`, `caller`, e `trace`.
--   **Tipagem de Erros:** Diferencia entre `businessError` (falhas de validação, regras de negócio) e `application` (erros de infraestrutura, bugs).
--   **Rastreamento de Transações (Tracing):** Mantém um histórico de passos (`trace`) dentro de uma mesma requisição.
--   **Contexto por Requisição:** Utiliza o escopo `Scope.TRANSIENT` do NestJS para isolar o contexto de log para cada requisição.
+Biblioteca de logging padronizada para aplicações NestJS da Cargolift, construída sobre o Pino.js. O objetivo é criar logs em formato JSON estruturado para facilitar a análise, o trace e a observabilidade em ferramentas como Logstash e Elasticsearch.
 
 ## Instalação
 
-A biblioteca requer que o projeto consumidor também tenha `nestjs-pino` e `pino-http` instalados.
-
 ```bash
-npm install cargolift-cdi-logger nestjs-pino pino-http
+npm install cargoliftcdilogger
 ```
 
-## Configuração
+## Features
 
-Importe o `LoggerModule` do `nestjs-pino` no seu `AppModule` e configure-o para usar a nossa biblioteca como logger principal da aplicação.
+-   Logs em formato JSON estruturado.
+-   Geração automática de `correlationId` para rastreamento de ponta a ponta.
+-   Estrutura de `trace` para seguir o fluxo da requisição.
+-   Contexto rico com informações da aplicação (`module`, `function`, `action`) e do chamador (`caller`).
+-   Diferenciação clara entre erros de negócio (`businessError`) e erros de aplicação (`application`).
+-   Fácil integração com o ecossistema NestJS.
 
-**`app.module.ts`**
+## Uso Básico
+
+A forma mais eficaz de usar o logger é configurá-lo globalmente na sua aplicação e usar um Middleware ou Interceptor para definir o contexto inicial de cada requisição.
+
+### 1. Configurando o Logger na Aplicação
+
+No seu arquivo `main.ts`, instrua o NestJS a usar sua implementação customizada do logger.
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { LoggerModule } from 'nestjs-pino';
-import { CdiLoggerModule } from 'cargolift-cdi-logger'; // Nossa biblioteca
-import { v4 as uuidv4 } from 'uuid';
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { CargoliftCDILogger } from 'cargoliftcdilogger';
 
-@Module({
-  imports: [
-    CdiLoggerModule, // Importe o nosso módulo
-    LoggerModule.forRoot({
-      pinoHttp: {
-        // Gera um ID de requisição único para ser usado como correlationId
-        genReqId: (req) => req.headers['x-correlation-id'] || uuidv4(),
-        transport: {
-          target: 'pino-pretty', // Em desenvolvimento, use um transport legível
-          options: {
-            singleLine: true,
-            colorize: true,
-          },
-        },
-        // Adicione outras configurações do pino aqui
-        // Ex: Para enviar para o Logstash, configure o transport adequado
-      },
-    }),
-  ],
-  controllers: [AppController],
-  providers: [AppService],
-})
-export class AppModule {}
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, {
+    // Desativamos o logger padrão do Nest para usar o nosso em todos os lugares
+    bufferLogs: true, 
+  });
+  
+  // Use a nossa implementação como o logger principal da aplicação
+  app.useLogger(app.get(CargoliftCDILogger));
+  
+  await app.listen(3000);
+}
+bootstrap();
 ```
 
-## Como Usar
+### 2. Criando um Middleware para Definir o Contexto
 
-### 1. Criando um Interceptor para Injetar o Contexto (Recomendado)
-
-A melhor forma de garantir que o contexto seja definido para cada requisição é usar um `Interceptor`.
-
-**`logging.interceptor.ts`**
+Um middleware é o local ideal para extrair headers (como `x-correlation-id`), gerar IDs e definir o contexto inicial do log para cada requisição recebida.
 
 ```typescript
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { CdiLoggerService, CdiLoggerContext } from 'cargolift-cdi-logger';
+// logging.middleware.ts
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+import { CargoliftCDILogger } from 'cargoliftcdilogger';
+import { randomUUID } from 'crypto';
 
 @Injectable()
-export class LoggingInterceptor implements NestInterceptor {
-  constructor(private readonly logger: CdiLoggerService) {}
+export class LoggingMiddleware implements NestMiddleware {
+  constructor(private readonly logger: CargoliftCDILogger) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable {
-    const request = context.switchToHttp().getRequest();
-    
-    // Supondo que você tenha autenticação e possa extrair o usuário
-    const user = request.user || { id: 'anonymous', type: 'system' };
+  use(req: Request, res: Response, next: NextFunction) {
+    const correlationId = req.headers['x-correlation-id']?.toString() || `api-${randomUUID()}`;
 
-    const loggerContext: CdiLoggerContext = {
-      correlationId: request.id, // ID gerado pelo pinoHttp
+    // Exemplo de como pegar informações do caller (ex: de um token JWT decodificado)
+    const userFromJwt = (req as any).user; // Supondo que um guard de autenticação já populou isso
+
+    this.logger.setContext({
+      correlationId,
       application: {
-        module: 'register', // Defina o módulo dinamicamente se necessário
-        function: context.getClass().name, // Nome do Controller
-        action: context.getHandler().name, // Nome do método
+        module: 'unknown', // Pode ser definido ou sobrescrito depois, no controller/service
+        function: 'unknown',
+        action: 'unknown',
       },
       caller: {
-        type: user.type || 'user',
-        id: user.id,
-        details: {
-          name: user.name,
-          email: user.email,
-        }
+        type: userFromJwt ? 'user' : 'api',
+        id: userFromJwt ? userFromJwt.id : 'external-system',
+        details: userFromJwt ? {
+            name: userFromJwt.name,
+            email: userFromJwt.email,
+        } : undefined,
       },
-      trace: {
-        name: `Entry -> ${context.getClass().name}.${context.getHandler().name}`,
-        timestamp: new Date().toISOString(),
-      },
-    };
+    });
 
-    this.logger.setContext(loggerContext);
+    this.logger.addTraceStep('RequestReceived');
 
-    return next.handle();
+    next();
   }
 }
 ```
 
-Aplique este interceptor globalmente no seu `main.ts`:
-```typescript
-// main.ts
-const app = await NestFactory.create(AppModule, { bufferLogs: true });
-app.useLogger(app.get(Logger)); // Usa o logger do nestjs-pino
-app.useGlobalInterceptors(new LoggingInterceptor(app.get(CdiLoggerService)));
-```
+### 3. Usando o Logger em Controllers e Services
 
-
-### 2. Usando o Logger em Serviços e Controllers
-
-Após configurar o interceptor, o contexto já estará disponível. Apenas injete e use o `CdiLoggerService`.
-
-**`driver.service.ts`**
+Agora, você pode injetar o `CargoliftCDILogger` em qualquer lugar e usá-lo. Como ele é `Scope.TRANSIENT`, cada requisição terá sua própria instância com seu próprio contexto.
 
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { CdiLoggerService } from 'cargolift-cdi-logger';
+// driver.controller.ts
+import { Controller, Post, Body, Inject } from '@nestjs/common';
+import { CargoliftCDILogger, ApplicationInfo } from 'cargiliftcdilogger';
 
-@Injectable()
-export class DriverService {
-  constructor(private readonly logger: CdiLoggerService) {}
+@Controller('drivers')
+export class DriverController {
+  private readonly appInfo: ApplicationInfo = {
+    module: 'register',
+    function: 'driver',
+    action: 'create', // Ação default para este contexto
+  };
 
-  async createDriver(driverData: any) {
-    this.logger.info('Iniciando criação de motorista.', {
-      driverCPF: driverData.cpf,
-    });
-
-    // 1. Adiciona um passo ao trace
-    this.logger.addTraceStep('ValidatingCPF');
-    if (!this.isValidCPF(driverData.cpf)) {
-      // 2. Loga um erro de negócio
-      this.logger.error(
-        `CPF inválido: ${driverData.cpf}`, 
-        { cpf: driverData.cpf },
-        'businessError' // Tipo do erro
-      );
-      throw new Error('CPF fornecido é inválido.');
-    }
-
-    this.logger.addTraceStep('SavingToDatabase');
-    try {
-        //... lógica para salvar no banco ...
-    } catch (dbError) {
-        // 3. Loga um erro de aplicação
-        this.logger.error(
-            'Falha ao salvar motorista no banco de dados.', 
-            { error: dbError.message, stack: dbError.stack },
-            'application' // Tipo do erro
-        );
-        throw new Error('Erro interno ao processar a requisição.');
-    }
-
-    this.logger.addTraceStep('DriverCreationFinished');
-    this.logger.info('Motorista criado com sucesso.', {
-      resource_id: driverData.cpf, // Adiciona o resource_id ao payload
-    });
-
-    return { success: true };
+  constructor(@Inject(CargoliftCDILogger) private readonly logger: CargoliftCDILogger) {
+    // Sobrescreve parte do contexto inicial com informações específicas deste controller
+    this.logger.setContext({ application: this.appInfo });
   }
 
-  private isValidCPF(cpf: string): boolean {
-    // ... sua lógica de validação de CPF ...
+  @Post()
+  createDriver(@Body() driverData: any) {
+    this.logger.addTraceStep('CreateDriverStarted');
+
+    this.logger.info(`Tentando criar motorista com CPF: ${driverData.cpf}`, {
+        application: { ...this.appInfo, resource_id: driverData.cpf }
+    });
+
+    try {
+        if (!this.isValidCpf(driverData.cpf)) {
+            // Este é um erro de validação, portanto, um "Business Error"
+            this.logger.businessError('CPF inválido fornecido', {
+                application: { ...this'appInfo, resource_id: driverData.cpf },
+                validationDetails: 'O CPF não passou no algoritmo de validação.'
+            });
+            // throw new BadRequestException('CPF inválido');
+        }
+
+        // Lógica de criação do motorista...
+
+        this.logger.addTraceStep('DriverCreatedSuccessfully');
+        this⚫logger.log('Motorista criado com sucesso!', {
+            application: { ...this.appInfo, resource_id: driverData.cpf }
+        });
+
+        return { message: 'Motorista criado!' };
+
+    } catch (error) {
+        // Erro inesperado, como falha no banco de dados. Um "Application Error"
+        this.logger.error('Falha inesperada ao criar motorista', error.stack, {
+            application: { ...this.appInfo, resource_id: driverData.cpf }
+        });
+        // throw new InternalServerErrorException('Erro interno');
+    }
+  }
+
+  private isValidCpf(cpf: string): boolean {
+    // Sua lógica de validação de CPF aqui
     return cpf && cpf.length === 11;
   }
 }
 ```
 
-## Estrutura do JSON de Log de Saída
+### Exemplo de Saída do Log (JSON)
 
 ```json
 {
-  "level": "info",
-  "timestamp": "...",
-  "message": "Motorista criado com sucesso.",
-  "correlationId": "req-1",
+  "level": "error",
+  "timestamp": 1672531200000,
+  "correlationId": "api-b7d1f8a0-4a8f-11ef-9a2c-0242ac120002",
+  "trace_string": "RequestReceived -> CreateDriverStarted",
+  "trace": [
+    { "name": "RequestReceived", "timestamp": "2025-09-01T10:00:00.000Z" },
+    { "name": "CreateDriverStarted", "timestamp": "2025-09-01T10:00:01.123Z" }
+  ],
   "application": {
     "module": "register",
-    "function": "DriverController",
+    "function": "driver",
     "action": "create",
     "resource_id": "12345678900"
   },
-  "caller": { "type": "user", "id": "israel.possoli" },
-  "errorType": "none",
-  "trace": { "name": "DriverCreationFinished", "timestamp": "..." },
-  "trace_string": "Entry -> ... -> ValidatingCPF -> SavingToDatabase -> DriverCreationFinished",
-  "full_trace_history": [
-      { "name": "Entry -> ...", "timestamp": "..." },
-      { "name": "ValidatingCPF", "timestamp": "..." }
-  ]
+  "caller": {
+    "type": "user",
+    "id": "israel.possoli",
+    "details": { "name": "Israel Possoli", "email": "israel.possoli@example.com" }
+  },
+  "errorType": "businessError",
+  "validationDetails": "O CPF não passou no algoritmo de validação.",
+  "message": "CPF inválido fornecido"
 }
 ```

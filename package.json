@@ -1,16 +1,20 @@
 {
   "name": "@cargolift-cdi/util-logger",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Logger NestJS global para projetos da organização Cargolift.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],  
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
   },
   "author": "Cargolift CDI",
   "license": "MIT",
   "peerDependencies": {
-    "@nestjs/common": ">=8.0.0",
+    "@nestjs/common": "^11.1.6",
     "nestjs-pino": "^4.4.0"
   },
   "devDependencies": {
@@ -27,6 +31,7 @@
   "dependencies": {
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "pino": "^9.9.0",
     "pino-http": "^10.5.0",
     "pino-pretty": "^13.1.1",
     "uuid": "^11.1.0"

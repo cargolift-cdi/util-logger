@@ -1,3 +1,3 @@
-export * from './cdi-logger.module';
-export * from './cdi-logger.service';
-export * from './interfaces/cdi-logger.interfaces';
+export * from './cargolift-logger.service';
+export * from './cargolift-logger.module';
+export * from './interfaces';
