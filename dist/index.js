@@ -14,5 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(require("./cargolift-cdi-logger.module"), exports);
-__exportStar(require("./cargolift-cdi-logger.service"), exports);
+__exportStar(require("./cdi-logger.module"), exports);
+__exportStar(require("./cdi-logger.service"), exports);
+__exportStar(require("./interfaces/cdi-logger.interfaces"), exports);
+//# sourceMappingURL=index.js.map
