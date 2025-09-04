@@ -1,3 +1,3 @@
-export * from './cargolift-logger.service';
-export * from './cargolift-logger.module';
+export * from './logger.service';
+export * from './logger.module';
 export * from './interfaces';
