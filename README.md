@@ -182,4 +182,12 @@ export class DriverController {
   "validationDetails": "O CPF não passou no algoritmo de validação.",
   "message": "CPF inválido fornecido"
 }
+
+```
+
+
+# Build & Publish
+```
+npm run build
+npm publish --access public
 ```
