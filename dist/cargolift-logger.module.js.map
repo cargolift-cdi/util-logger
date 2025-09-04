@@ -1,1 +1,0 @@
-{"version":3,"file":"cargolift-logger.module.js","sourceRoot":"","sources":["../src/cargolift-logger.module.ts"],"names":[],"mappings":";;;;;;;;;AAAA,2CAAgD;AAChD,yEAAgE;AAOzD,IAAM,wBAAwB,GAA9B,MAAM,wBAAwB;CAAG,CAAA;AAA3B,4DAAwB;mCAAxB,wBAAwB;IALpC,IAAA,eAAM,GAAE;IACR,IAAA,eAAM,EAAC;QACN,SAAS,EAAE,CAAC,6CAAkB,CAAC;QAC/B,OAAO,EAAE,CAAC,6CAAkB,CAAC;KAC9B,CAAC;GACW,wBAAwB,CAAG"}
