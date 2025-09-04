@@ -57,7 +57,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 
 
-@Injectable({ scope: Scope.TRANSIENT }) // TRANSIENT para criar uma nova instância por request/consumer
+// @Injectable({ scope: Scope.TRANSIENT }) // TRANSIENT para criar uma nova instância por request/consumer
+@Injectable({ scope: Scope.REQUEST })
 export class LoggerContextService implements LoggerService {
   private pinoLogger: Logger;
   private context: Partial<LogContext> = {};
