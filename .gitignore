@@ -1,1 +1,6 @@
-.npmrc
+node_modules
+.env
+dist
+.webpack
+.serverless/**/*.zip
+
