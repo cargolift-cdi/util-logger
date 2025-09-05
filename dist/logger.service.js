@@ -84,7 +84,7 @@ let LoggerContextService = class LoggerContextService {
 };
 exports.LoggerContextService = LoggerContextService;
 exports.LoggerContextService = LoggerContextService = __decorate([
-    (0, common_1.Injectable)({ scope: common_1.Scope.TRANSIENT }),
+    (0, common_1.Injectable)({ scope: common_1.Scope.REQUEST }),
     __metadata("design:paramtypes", [])
 ], LoggerContextService);
 //# sourceMappingURL=logger.service.js.map

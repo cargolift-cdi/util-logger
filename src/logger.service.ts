@@ -69,12 +69,21 @@ export class LoggerContextService implements LoggerService {
       options: {
         colorize: true,
         translateTime: 'UTC:dd/mm/yyyy HH:MM:ss.l',
+        // ignore: 'logType,trace,correlation_id,application',
       }
     }
     this.pinoLogger = pino({
       level: process.env.LOG_LEVEL || 'info',
       transport: process.env.NODE_ENV !== 'production' ? transportOptions : undefined,
     });
+  }
+
+  /**
+   * Define o contexto padrão para os logs.
+   * @param req (Opcional) O objeto Request para extrair informações de contexto.
+   */
+  setDefaultContext(req?: Request): void {
+    this.setContext(null, req);
   }
 
 
@@ -84,15 +93,42 @@ export class LoggerContextService implements LoggerService {
    * @param context O contexto da transação/request.
    * @param req (Opcional) O objeto Request para extrair headers de rastreabilidade de logs como 'x-trace', 'x-correlation-id'.
    */
-  setContext(context: LogContext, req?: Request): void {
+  setContext(context?: LogContext, req?: Request): void {
     let trace: LogTrace[] = [];
-    const xTrace = req?.headers['x-trace'];
-    const xCorrelation = req?.headers['x-correlation-id'];
+    const xTrace = req?.headers?.['x-trace'];
+    const xCorrelation = req?.headers?.['x-correlation-id'] as string | undefined;
+    const reqCorrelation = (req as any)?.correlationId as string | undefined; // Reusa o correlation id da requisição incluída no request (req)
 
+
+    this.context = Object.assign(this.context, context);
+
+    // Preserve existing correlation id if already set in service or provided in context or present on the request/headers
+    this.context.correlation_id =
+      this.context.correlation_id ||
+      context?.correlation_id ||
+      reqCorrelation ||
+      xCorrelation ||
+      uuidv4();
+
+    if (!this.context.application) {
+      this.context.application = {
+        name: process.env.npm_package_name,
+        function: req.url || 'unknown',
+        action: req.method || 'unknown',
+      };
+    }
+
+    // Processa o cabeçalho 'x-trace' para rastreamento
     if (xTrace) {
       try {
         const traceObj = typeof xTrace === 'string' ? JSON.parse(xTrace) : xTrace;
-        if (typeof traceObj === 'object' && traceObj !== null) {
+        if (Array.isArray(traceObj)) {
+          for (const item of traceObj) {
+            if (item && typeof item === 'object') {
+              trace.push(item);
+            }
+          }
+        } else if (typeof traceObj === 'object' && traceObj !== null) {
           trace.push(traceObj);
         }
       } catch (e) {
@@ -102,16 +138,35 @@ export class LoggerContextService implements LoggerService {
 
     // Adiciona novo registro ao trace
     trace.push({
-      name: context.application.name + '.' + context.application.function,
+      name: this.context.application.name,
+      function: this.context.application.function,
       timestamp: new Date().toISOString(),
     });
-
-    this.context = Object.assign(this.context, context);
-    this.context.correlation_id =  xCorrelation || uuidv4();
     this.context.trace = trace;
     if (!this.context.trace) this.context.trace = [];
+
+    // Persiste o contexto de log na requisição para consumidores posteriores (ex: filtros globais)
+    if (req) {
+      (req as any).correlationId = this.context.correlation_id;
+      (req as any).logContext = { ...this.context };
+    }
   }
 
+
+  /**
+   * Retorna uma cópia do contexto atual de logs (para uso por publishers/middleware).
+   */
+  getContext(): Partial<LogContext> {
+    return { ...this.context };
+  }
+
+  /**
+   * Constrói a estrutura de log a ser enviada para o sistema de logging.
+   * @param message A mensagem de log.
+   * @param logType O tipo de log (ex: "application", "business").
+   * @param extraContext Contexto adicional a ser incluído no log.
+   * @returns Um objeto representando a estrutura de log.
+   */
   private buildLog(message: string, logType: string, extraContext: Record<string, any> = {}) {
     return {
       logType: logType,
@@ -131,11 +186,22 @@ export class LoggerContextService implements LoggerService {
   }
 
   error(message: string, error?: Record<string, any>, extraContext?: Record<string, any>) {
+    let errorData = {};
+    if (error) {
+      try {
+        errorData = JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      } catch (e) {
+        errorData = { error: 'Failed to serialize error object' };
+      }
+    }
+
     this.pinoLogger.error(
       this.buildLog(
-        message, 'application', 
-        { 
-          ...extraContext, error: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))) })
+        message, 'application',
+        {
+          ...extraContext,
+          error: errorData
+        })
     );
   }
 
@@ -146,84 +212,5 @@ export class LoggerContextService implements LoggerService {
   businessError(message: string, extraContext?: Record<string, any>) {
     this.pinoLogger.error(this.buildLog(message, 'business', extraContext));
   }
-
-
-  /**
-   * Adiciona um passo ao rastreamento (trace) da transação.
-   * @param name - Nome descritivo do passo. Ex: "ValidatingDriverCPF"
-   */
-  /*
-  addTraceStep(name: string) {
-    if (!this.context.trace) {
-      this.context.trace = [];
-    }
-
-    const step: TraceStep = {
-      name,
-      timestamp: new Date().toISOString(),
-    };
-
-    this.context.trace.push(step);
-  }
-*/
-
-  /*
-    private mergePayload(message: string, payload: Record<string, any> = {}, errorType: ErrorType = 'none') {
-      const finalPayload = {
-        ...this.context,
-        ...payload,
-        errorType,
-      };
-      return { finalPayload, message };
-    }
-  
-    log(message: string, context?: Record<string, any>) {
-      const { finalPayload } = this.mergePayload(message, context);
-      this.pinoLogger.info(finalPayload, message);
-    }
-  
-    info(message: string, context?: Record<string, any>) {
-      this.log(message, context);
-    }
-  
-    error(message: string, traceOrContext?: string | Record<string, any>, context?: Record<string, any>) {
-      let payload: Record<string, any> = {};
-  
-      // Verifica o segundo argumento
-      if (typeof traceOrContext === 'object' && traceOrContext !== null) {
-        payload = { ...payload, ...traceOrContext };
-      } else if (typeof traceOrContext === 'string') {
-        payload.stackTrace = traceOrContext;
-      }
-  
-      // Verifica o terceiro argumento
-      if (typeof context === 'object' && context !== null) {
-        payload = { ...payload, ...context };
-      }
-      
-      const isBusinessError = payload.errorType === 'businessError';
-      const errorType: ErrorType = isBusinessError ? 'businessError' : 'application';
-      
-      const { finalPayload } = this.mergePayload(message, payload, errorType);
-      this.pinoLogger.error(finalPayload, message);
-    }
-  
-    warn(message: string, context?: Record<string, any>) {
-      const { finalPayload } = this.mergePayload(message, context);
-      this.pinoLogger.warn(finalPayload, message);
-    }
-  
-    debug?(message: string, context?: Record<string, any>) {
-      const { finalPayload } = this.mergePayload(message, context);
-      this.pinoLogger.debug(finalPayload, message);
-    }
-  
-    verbose?(message: string, context?: Record<string, any>) {
-      const { finalPayload } = this.mergePayload(message, context);
-      this.pinoLogger.trace(finalPayload, message);
-    }
-      */
-
-
 }
 
