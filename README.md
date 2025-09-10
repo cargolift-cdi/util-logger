@@ -124,9 +124,6 @@ Exemplos:
 
 MIT
 
----
-
-Se quiser personalizar algum trecho, me avise!
 
 # Build & Publish
 ```

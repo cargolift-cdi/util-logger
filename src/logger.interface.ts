@@ -15,9 +15,9 @@ export interface CallerInfo {
 }
 
 export interface LogTrace {
-    timestamp: string;
-    name: string;
+    name?: string;    application: string;
     function: string;
+    timestamp: string;
 }
 
 export interface Error {

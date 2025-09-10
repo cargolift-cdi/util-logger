@@ -82,8 +82,8 @@ export class LoggerContextService implements LoggerService {
    * Define o contexto padrão para os logs.
    * @param req (Opcional) O objeto Request para extrair informações de contexto.
    */
-  setDefaultContext(req?: Request): void {
-    this.setContext(null, req);
+  setDefaultContext(req?: Request, rmqMessage?: any): void {
+    this.setContext(null, req, rmqMessage);
   }
 
 
@@ -93,12 +93,10 @@ export class LoggerContextService implements LoggerService {
    * @param context O contexto da transação/request.
    * @param req (Opcional) O objeto Request para extrair headers de rastreabilidade de logs como 'x-trace', 'x-correlation-id'.
    */
-  setContext(context?: LogContext, req?: Request): void {
+  setContext(context?: LogContext, req?: Request, rmqMessage?: any): void {
     let trace: LogTrace[] = [];
-    const xTrace = req?.headers?.['x-trace'];
-    const xCorrelation = req?.headers?.['x-correlation-id'] as string | undefined;
-    const reqCorrelation = (req as any)?.correlationId as string | undefined; // Reusa o correlation id da requisição incluída no request (req)
-
+    const xTrace = req?.headers?.['x-trace'] || rmqMessage?.properties?.headers?.['x-trace'] as string | undefined;
+    const xCorrelation = (req as any)?.correlationId || req?.headers?.['x-correlation-id'] || rmqMessage?.properties?.headers?.['x-correlation-id'] as string | undefined;
 
     this.context = Object.assign(this.context, context);
 
@@ -106,15 +104,14 @@ export class LoggerContextService implements LoggerService {
     this.context.correlation_id =
       this.context.correlation_id ||
       context?.correlation_id ||
-      reqCorrelation ||
       xCorrelation ||
       uuidv4();
 
     if (!this.context.application) {
       this.context.application = {
         name: process.env.npm_package_name,
-        function: req.url || 'unknown',
-        action: req.method || 'unknown',
+        function: req?.url || rmqMessage?.fields?.routingKey || rmqMessage?.properties?.headers?.pattern || 'unknown',
+        action: req?.method || undefined,
       };
     }
 
@@ -138,7 +135,7 @@ export class LoggerContextService implements LoggerService {
 
     // Adiciona novo registro ao trace
     trace.push({
-      name: this.context.application.name,
+      application: this.context.application.name,
       function: this.context.application.function,
       timestamp: new Date().toISOString(),
     });
