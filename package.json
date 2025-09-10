@@ -17,6 +17,7 @@
     "@nestjs/common": "^11.1.6"
   },
   "devDependencies": {
+    "@cargolift-cdi/types": "latest",
     "@types/node": "^24.3.0",
     "typescript": "^5.9.2"
   },

@@ -2,6 +2,7 @@ import { Injectable, LoggerService, LogLevel, Scope } from '@nestjs/common';
 import pino, { Logger, TransportTargetOptions } from 'pino';
 import { LogContext, LogTrace } from './logger.interface';
 import { v4 as uuidv4 } from 'uuid';
+import type { RabbitMQMessage } from '@cargolift-cdi/types';
 
 /*
 {
@@ -82,7 +83,7 @@ export class LoggerContextService implements LoggerService {
    * Define o contexto padrão para os logs.
    * @param req (Opcional) O objeto Request para extrair informações de contexto.
    */
-  setDefaultContext(req?: Request, rmqMessage?: any): void {
+  setDefaultContext(req?: Request, rmqMessage?: RabbitMQMessage): void {
     this.setContext(null, req, rmqMessage);
   }
 
@@ -93,7 +94,7 @@ export class LoggerContextService implements LoggerService {
    * @param context O contexto da transação/request.
    * @param req (Opcional) O objeto Request para extrair headers de rastreabilidade de logs como 'x-trace', 'x-correlation-id'.
    */
-  setContext(context?: LogContext, req?: Request, rmqMessage?: any): void {
+  setContext(context?: LogContext, req?: Request, rmqMessage?: RabbitMQMessage): void {
     let trace: LogTrace[] = [];
     const xTrace = req?.headers?.['x-trace'] || rmqMessage?.properties?.headers?.['x-trace'] as string | undefined;
     const xCorrelation = (req as any)?.correlationId || req?.headers?.['x-correlation-id'] || rmqMessage?.properties?.headers?.['x-correlation-id'] as string | undefined;
