@@ -1,6 +1,6 @@
 {
   "name": "@cargolift-cdi/util-logger",
-  "version": "1.8.8",
+  "version": "1.8.9",
   "description": "Logger NestJS global para projetos da organização Cargolift.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -29,6 +29,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
+    "@nestjs/core": "^11.1.6",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "pino": "^9.9.2",
