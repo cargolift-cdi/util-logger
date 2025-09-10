@@ -69,13 +69,14 @@ export class LoggerContextService implements LoggerService {
       target: 'pino-pretty', // Para desenvolvimento. Em produção, isso deve ser removido
       options: {
         colorize: true,
-        translateTime: 'UTC:dd/mm/yyyy HH:MM:ss.l',
-        // ignore: 'logType,trace,correlation_id,application',
-      }
+        translateTime: 'SYS:dd/mm/yyyy HH:MM:ss.l',
+        ignore: 'pid,hostname,trace,correlation_id,application,message',
+        messageFormat: "{message}",
+      },
     }
     this.pinoLogger = pino({
       level: process.env.LOG_LEVEL || 'info',
-      transport: process.env.NODE_ENV !== 'production' ? transportOptions : undefined,
+      transport: process.env.NODE_ENV === 'development' ? transportOptions : undefined,
     });
   }
 
@@ -83,8 +84,24 @@ export class LoggerContextService implements LoggerService {
    * Define o contexto padrão para os logs.
    * @param req (Opcional) O objeto Request para extrair informações de contexto.
    */
-  setDefaultContext(req?: Request, rmqMessage?: RabbitMQMessage): void {
-    this.setContext(null, req, rmqMessage);
+  setDefaultContext(req?: Request, rabbitMQMessage?: RabbitMQMessage): void {
+    this.setContext(null, req, rabbitMQMessage);
+  }
+
+  /**
+   * Define o contexto do log com base no objeto Request.
+   * @param req O objeto Request para extrair informações de contexto.
+   */
+  setContextRequest(req: Request): void {
+    this.setContext(null, req);
+  }
+
+  /**
+   * Define o contexto do log com base na mensagem RabbitMQ.
+   * @param rabbitMQMessage A mensagem RabbitMQ para extrair informações de contexto.
+   */
+  setContextRabbitMQ(rabbitMQMessage: RabbitMQMessage): void {
+    this.setContext(null, undefined, rabbitMQMessage);
   }
 
 
@@ -93,11 +110,12 @@ export class LoggerContextService implements LoggerService {
    * Valida os campos obrigatórios.
    * @param context O contexto da transação/request.
    * @param req (Opcional) O objeto Request para extrair headers de rastreabilidade de logs como 'x-trace', 'x-correlation-id'.
+   * @param rabbitMQMessage (Opcional) A mensagem AMQP (como RabbitMQ) para extrair headers de rastreabilidade de logs como 'x-trace', 'x-correlation-id'.
    */
-  setContext(context?: LogContext, req?: Request, rmqMessage?: RabbitMQMessage): void {
+  setContext(context?: LogContext, req?: Request, rabbitMQMessage?: RabbitMQMessage): void {
     let trace: LogTrace[] = [];
-    const xTrace = req?.headers?.['x-trace'] || rmqMessage?.properties?.headers?.['x-trace'] as string | undefined;
-    const xCorrelation = (req as any)?.correlationId || req?.headers?.['x-correlation-id'] || rmqMessage?.properties?.headers?.['x-correlation-id'] as string | undefined;
+    const xTrace = req?.headers?.['x-trace'] || rabbitMQMessage?.properties?.headers?.['x-trace'] as string | undefined;
+    const xCorrelation = (req as any)?.correlationId || req?.headers?.['x-correlation-id'] || rabbitMQMessage?.properties?.headers?.['x-correlation-id'] as string | undefined;
 
     this.context = Object.assign(this.context, context);
 
@@ -111,7 +129,7 @@ export class LoggerContextService implements LoggerService {
     if (!this.context.application) {
       this.context.application = {
         name: process.env.npm_package_name,
-        function: req?.url || rmqMessage?.fields?.routingKey || rmqMessage?.properties?.headers?.pattern || 'unknown',
+        function: req?.url || rabbitMQMessage?.fields?.routingKey || rabbitMQMessage?.properties?.headers?.pattern || 'unknown',
         action: req?.method || undefined,
       };
     }
