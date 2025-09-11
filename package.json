@@ -1,6 +1,6 @@
 {
   "name": "@cargolift-cdi/util-logger",
-  "version": "1.8.9",
+  "version": "1.8.10",
   "description": "Logger NestJS global para projetos da organização Cargolift.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
