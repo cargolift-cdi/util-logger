@@ -70,7 +70,7 @@ export class LoggerContextService implements LoggerService {
       options: {
         colorize: true,
         translateTime: 'SYS:dd/mm/yyyy HH:MM:ss.l',
-        ignore: 'pid,hostname,trace,correlation_id,application,message',
+        ignore: process.env.LOG_DEBUG_IGNORE || 'pid,hostname,trace,correlation_id,application,message',
         messageFormat: "{message}",
       },
     }
@@ -84,7 +84,7 @@ export class LoggerContextService implements LoggerService {
    * Define o contexto padrão para os logs.
    * @param req (Opcional) O objeto Request para extrair informações de contexto.
    */
-  setDefaultContext(req?: Request, rabbitMQMessage?: RabbitMQMessage): void {
+  setDefaultContext(req?: any, rabbitMQMessage?: RabbitMQMessage): void {
     this.setContext(null, req, rabbitMQMessage);
   }
 
@@ -92,7 +92,7 @@ export class LoggerContextService implements LoggerService {
    * Define o contexto do log com base no objeto Request.
    * @param req O objeto Request para extrair informações de contexto.
    */
-  setContextRequest(req: Request): void {
+  setContextRequest(req: any): void {
     this.setContext(null, req);
   }
 
@@ -112,7 +112,7 @@ export class LoggerContextService implements LoggerService {
    * @param req (Opcional) O objeto Request para extrair headers de rastreabilidade de logs como 'x-trace', 'x-correlation-id'.
    * @param rabbitMQMessage (Opcional) A mensagem AMQP (como RabbitMQ) para extrair headers de rastreabilidade de logs como 'x-trace', 'x-correlation-id'.
    */
-  setContext(context?: LogContext, req?: Request, rabbitMQMessage?: RabbitMQMessage): void {
+  setContext(context?: LogContext, req?: any, rabbitMQMessage?: RabbitMQMessage): void {
     let trace: LogTrace[] = [];
     const xTrace = req?.headers?.['x-trace'] || rabbitMQMessage?.properties?.headers?.['x-trace'] as string | undefined;
     const xCorrelation = (req as any)?.correlationId || req?.headers?.['x-correlation-id'] || rabbitMQMessage?.properties?.headers?.['x-correlation-id'] as string | undefined;
@@ -129,7 +129,7 @@ export class LoggerContextService implements LoggerService {
     if (!this.context.application) {
       this.context.application = {
         name: process.env.npm_package_name,
-        function: req?.url || rabbitMQMessage?.fields?.routingKey || rabbitMQMessage?.properties?.headers?.pattern || 'unknown',
+        function: req?.originalUrl || req?.url || rabbitMQMessage?.fields?.routingKey || rabbitMQMessage?.properties?.headers?.pattern || 'unknown',
         action: req?.method || undefined,
       };
     }
