@@ -197,6 +197,10 @@ export class LoggerContextService implements LoggerService {
     this.pinoLogger.info(this.buildLog(message, 'application', extraContext));
   }
 
+  debug(message: string, extraContext?: Record<string, any>) {
+    this.pinoLogger.debug(this.buildLog(message, 'application', extraContext));
+  }
+
   log(message: any, ...optionalParams: any[]) {
     throw new Error('Method not implemented.');
   }
