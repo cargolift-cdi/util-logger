@@ -4,7 +4,7 @@ import { LoggerContextService } from '../logger.service';
 
 @Injectable()
 export class APILoggerMiddleware implements NestMiddleware {
-  constructor(private readonly moduleRef: ModuleRef) {}
+  constructor(private readonly moduleRef: ModuleRef) { }
 
   async use(req: any, res: any, next: Function) {
     // Resolve a request-scoped instance of LoggerContextService for this request
@@ -16,19 +16,23 @@ export class APILoggerMiddleware implements NestMiddleware {
 
     try {
       const url = req?.originalUrl || req?.url;
-      
+
+      if (!logger.isContextSet()) {
+        logger.setContextRequest(req);
+      }
+      /*
        logger.setContext(
         {
           application: {
-            name: 'middleware-api-util',
+            name: 'unknown', 
             function: url,
             action: req?.method,
           },
         },
         req,
       );
+      */
 
-      
       logger.info(`HTTP ${req?.method} ${url} [${res?.statusCode}] - Request received`, {
         data: {
           http: {

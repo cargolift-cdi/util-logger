@@ -177,6 +177,14 @@ export class LoggerContextService implements LoggerService {
   }
 
   /**
+   * Verifica se o contexto de log está definido.
+   * @returns 
+   */
+  isContextSet(): boolean {
+    return !!(this.context && this.context.application && this.context.correlation_id);
+  }
+
+  /**
    * Constrói a estrutura de log a ser enviada para o sistema de logging.
    * @param message A mensagem de log.
    * @param logType O tipo de log (ex: "application", "business").
