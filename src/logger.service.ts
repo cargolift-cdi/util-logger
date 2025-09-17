@@ -194,10 +194,12 @@ export class LoggerContextService implements LoggerService {
    */
   private buildLog(message: string, logType: string, extraContext: Record<string, any> = {}) {
     return {
+      message,
       logType: logType,
+      ...this.context,
       ...extraContext,
       // timestamp: new Date().toISOString(),
-      message,
+      
     };
   }
 
@@ -210,7 +212,7 @@ export class LoggerContextService implements LoggerService {
   }
 
   log(message: string, extraContext?: Record<string, any>) {
-    this.pinoLogger.info(this.buildLog(message, 'application', extraContext));
+    this.info(message, extraContext);
   }
 
   error(message: string, error?: Record<string, any>, extraContext?: Record<string, any>) {
@@ -238,6 +240,9 @@ export class LoggerContextService implements LoggerService {
   }
 
   businessError(message: string, extraContext?: Record<string, any>) {
+    /*if (!this.isContextSet()) {
+      this.setDefaultContext();
+    }*/
     this.pinoLogger.error(this.buildLog(message, 'business', extraContext));
   }
 }
