@@ -2,7 +2,7 @@ export interface ApplicationInfo {
     name: string;
     function?: string;
     action?: string;
-    resource_id?: string;
+    method?: string;
 }
 
 export interface CallerInfo {

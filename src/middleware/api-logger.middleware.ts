@@ -33,13 +33,18 @@ export class APILoggerMiddleware implements NestMiddleware {
       );
       */
 
+      // const currentApplication = logger.getContext().application || {};
+
+      // Log de entrada (request)
       logger.info(`HTTP ${req?.method} ${url} [${res?.statusCode}] - Request received`, {
+        application: {
+          ...logger.getContext().application || {},
+          action: 'request',
+        },
         data: {
-          http: {
-            request: {
-              method: req?.method,
-              path: url,
-            },
+          request: {
+            method: req?.method,
+            path: url,
           },
           payload: this.safeBody(req?.body),
         },
@@ -49,14 +54,15 @@ export class APILoggerMiddleware implements NestMiddleware {
         const endHr = typeof process.hrtime.bigint === 'function' ? process.hrtime.bigint() : null;
         const durationMs = startHr && endHr ? Number((endHr - startHr) / BigInt(1_000_000)) : undefined;
         logger.info(`HTTP ${req?.method} ${url} [${res?.statusCode}] - Response sent`, {
+          application: {
+            ...logger.getContext().application || {},
+            action: 'response',
+          },
           data: {
-            http: {
-              response: {
-                statusCode: res?.statusCode,
-                durationMs,
-                body: res?.json,
-
-              },
+            response: {
+              statusCode: res?.statusCode,
+              durationMs,
+              body: res?.json,
             },
             payload: this.safeBody(res?.json),
           },

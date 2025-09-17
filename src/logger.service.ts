@@ -130,7 +130,8 @@ export class LoggerContextService implements LoggerService {
       this.context.application = {
         name: process.env.npm_package_name,
         function: req?.originalUrl || req?.url || rabbitMQMessage?.fields?.routingKey || rabbitMQMessage?.properties?.headers?.pattern || 'unknown',
-        action: req?.method || undefined,
+        // action: req?.method || rabbitMQMessage?.properties?.headers?.method || 'unknown',
+        method: req?.method || undefined,
       };
     }
 
@@ -194,7 +195,6 @@ export class LoggerContextService implements LoggerService {
   private buildLog(message: string, logType: string, extraContext: Record<string, any> = {}) {
     return {
       logType: logType,
-      ...this.context,
       ...extraContext,
       // timestamp: new Date().toISOString(),
       message,
